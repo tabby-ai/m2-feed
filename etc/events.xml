@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="catalog_product_save_after">
+        <observer name="tabby_feed_product_saved" instance="Tabby\Feed\Observer\ProductSaveObserver" />
+    </event>
+    <event name="catalog_product_delete_before">
+        <observer name="tabby_feed_product_deleted" instance="Tabby\Feed\Observer\ProductDeleteObserver" />
+    </event>
+    <event name="catalog_product_attribute_update_before">
+        <observer name="tabby_feed_attribute_update_before"
+                  instance="Tabby\Feed\Observer\AttributeUpdateBefore" />
+    </event>
+</config>
