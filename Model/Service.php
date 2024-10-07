@@ -10,14 +10,23 @@ use Magento\Catalog\Model\ProductFactory;
 use Magento\ConfigurableProduct\Model\Product\Type\Configurable as ConfigurableType;
 use Tabby\Checkout\Gateway\Config\Config;
 
-class Service {
+class Service
+{
     public const ALLOWED_CURRENCIES = ['AED', 'BHD', 'KWD', 'SAR', 'QAR'];
     public const TABBY_FEED_FLAG_INSTALLED_STORES = 'tabby_feed_installed_stores';
     public const TABBY_FEED_FLAG_STORE = 'tabby_feed_store';
     public const TABBY_FEED_LANG_MAP = ['en' => 'eng', 'ar' => 'ara'];
 
+    /**
+     * @var FlagManager
+     */
     protected $_flagManager;
+
+    /**
+     * @var StoreFactory
+     */
     protected $_storeFactory;
+
     /**
      * @var ScopeConfigInterface
      */
@@ -34,6 +43,11 @@ class Service {
     protected $_productFactory;
 
     /**
+     * @var ConfigurableType
+     */
+    protected $_configurableType;
+
+    /**
      * @var StoreManager
      */
     protected $_storeManager;
@@ -42,7 +56,11 @@ class Service {
      * Feed constructor.
      *
      * @param FlagManager $flagManager
+     * @param StoreFactory $storeFactory
      * @param ScopeConfigInterface $scopeConfig
+     * @param LockManagerDatabase $lockManager
+     * @param ProductFactory $productFactory
+     * @param ConfigurableType $configurableType
      * @param StoreManager $storeManager
      */
     public function __construct(
@@ -62,7 +80,14 @@ class Service {
         $this->_configurableType = $configurableType;
         $this->_storeManager = $storeManager;
     }
-    public function onProductDeleted($product) {
+
+    /**
+     * On product deleted functionality
+     *
+     * @param \Magento\Catalog\Model\Product $product
+     */
+    public function onProductDeleted($product)
+    {
         // get product website Ids
         $websiteIds = $product->getWebsiteIds();
         $registeredStores = $this->getRegisteredStores();
@@ -72,7 +97,14 @@ class Service {
             }
         }
     }
-    public function onProductUpdated($product) {
+
+    /**
+     * On product updated functionality
+     *
+     * @param \Magento\Catalog\Model\Product $product
+     */
+    public function onProductUpdated($product)
+    {
         // get product website Ids
         $websiteIds = $product->getWebsiteIds();
         $registeredStores = $this->getRegisteredStores();
@@ -82,18 +114,41 @@ class Service {
             }
         }
     }
-    public function onProductAttributesUpdated($ids) {
+
+    /**
+     * On product attributes updated functionality
+     *
+     * @param array $ids
+     */
+    public function onProductAttributesUpdated($ids)
+    {
         foreach ($ids as $pId) {
             $product = $this->_productFactory->create()->load($pId);
             $this->onProductUpdated($product);
         }
     }
-    public function notifyStoreProductDeleted($storeConfig, $product) {
+
+    /**
+     * Notify store product deleted, remove products from update list
+     *
+     * @param array $storeConfig
+     * @param \Magento\Catalog\Model\Product $product
+     */
+    public function notifyStoreProductDeleted($storeConfig, $product)
+    {
         $tabbyStore = $this->_storeFactory->create(['config' => $storeConfig]);
         $tabbyStore->deleteProduct($product);
         $this->removeStoreProductsUpdated($storeConfig['code'], $product->getId());
     }
-    public function removeStoreProductsUpdated($storeCode, $pId) {
+
+    /**
+     * Remove products from update list
+     *
+     * @param string $storeCode
+     * @param int $pId
+     */
+    public function removeStoreProductsUpdated($storeCode, $pId)
+    {
         $lockName = $this->getStoreProductsFlagName($storeCode) . '_lock';
         $this->_lockManager->lock($lockName, 10);
         $ids = $this->getStoreProducts($storeCode);
@@ -107,8 +162,16 @@ class Service {
         }
         $this->_lockManager->unlock($lockName);
     }
-    public function addStoreProductUpdated($storeCode, $product) {
-        // configurable products 
+
+    /**
+     * Add products to update list
+     *
+     * @param string $storeCode
+     * @param \Magento\Catalog\Model\Product $product
+     */
+    public function addStoreProductUpdated($storeCode, $product)
+    {
+        // configurable products
         $updated = $this->_configurableType->getParentIdsByChild($product->getId());
         // simple products
         if (empty($updated)) {
@@ -129,7 +192,12 @@ class Service {
         }
         $this->_lockManager->unlock($lockName);
     }
-    public function onServiceRequested() {
+
+    /**
+     * Service feed module
+     */
+    public function onServiceRequested()
+    {
         $lockName = self::TABBY_FEED_FLAG_INSTALLED_STORES . '_lock';
         $this->_lockManager->lock($lockName, 10);
         $configuredStores = $this->getConfiguredStores();
@@ -145,9 +213,11 @@ class Service {
                         unset($registeredStores[$merchantCode]);
                     }
                 }
-            } 
+            }
             if (!array_key_exists($merchantCode, $registeredStores)) {
-                if (!$this->needToRegisterStore($merchantCode)) continue;
+                if (!$this->needToRegisterStore($merchantCode)) {
+                    continue;
+                }
                 $tabbyStore = $this->_storeFactory->create(['config' => $storeConfig]);
                 if ($token = $tabbyStore->register()) {
                     $configuredStores[$merchantCode]['token'] = $token;
@@ -178,7 +248,14 @@ class Service {
         $this->syncStores($registeredStores);
         $this->_lockManager->unlock($lockName);
     }
-    public function syncStores($stores) {
+
+    /**
+     * Sync registered store products
+     *
+     * @param array $stores
+     */
+    public function syncStores($stores)
+    {
         foreach ($stores as $storeCode => $storeConfig) {
             if ($products = $this->getStoreProducts($storeCode)) {
                 if (is_array($products) && !empty($products)) {
@@ -190,54 +267,134 @@ class Service {
         }
     }
 
-    public function needToRegisterStore($merchantCode) {
+    /**
+     * Check store register request failed in last 4 hours
+     *
+     * @param string $merchantCode
+     * @return bool
+     */
+    public function needToRegisterStore($merchantCode)
+    {
         $last = (int)$this->_flagManager->getFlagData($this->getStoreFlagName($merchantCode));
         // try to register store once per 4 hours
         return (time() - $last > 4 * 60 * 60);
     }
-    public function noteStoreRegistrationFailed($merchantCode) {
+
+    /**
+     * Set flag with time store register request failed
+     *
+     * @param string $merchantCode
+     */
+    public function noteStoreRegistrationFailed($merchantCode)
+    {
         // save current time for note
         $this->_flagManager->saveFlag($this->getStoreFlagName($merchantCode), time());
     }
-    public function setStoreProducts($merchantCode, $products) {
+
+    /**
+     * Save flag with store products updated to DB
+     *
+     * @param string $merchantCode
+     * @param array $products
+     * @return $this
+     */
+    public function setStoreProducts($merchantCode, $products)
+    {
         $this->_flagManager->saveFlag(
             $this->getStoreProductsFlagName($merchantCode),
             $products
         );
         return $this;
     }
-    public function getStoreProducts($merchantCode) {
+
+    /**
+     * Retrive store products from DB
+     *
+     * @param string $merchantCode
+     * @return array
+     */
+    public function getStoreProducts($merchantCode)
+    {
         return $this->_flagManager->getFlagData(
             $this->getStoreProductsFlagName($merchantCode),
         );
     }
-    public function getStoreLastFlagName($merchantCode) {
+
+    /**
+     * Get flag name for last register attempt
+     *
+     * @param string $merchantCode
+     * @return string
+     */
+    public function getStoreLastFlagName($merchantCode)
+    {
         return $this->getStoreFlagName($merchantCode) . '_last';
     }
-    public function getStoreProductsFlagName($merchantCode) {
+
+    /**
+     * Get flag name for store products
+     *
+     * @param string $merchantCode
+     * @return string
+     */
+    public function getStoreProductsFlagName($merchantCode)
+    {
         return $this->getStoreFlagName($merchantCode) . '_products';
     }
-    public function getStoreFlagName($merchantCode) {
+
+    /**
+     * Get flag name for store
+     *
+     * @param string $merchantCode
+     * @return string
+     */
+    public function getStoreFlagName($merchantCode)
+    {
         return self::TABBY_FEED_FLAG_STORE . '_' . $merchantCode;
     }
-    public function setRegisteredStores($stores) {
+
+    /**
+     * Save registered stores array in flag table
+     *
+     * @param array $stores
+     * @return $this
+     */
+    public function setRegisteredStores($stores)
+    {
         $this->_flagManager->saveFlag(self::TABBY_FEED_FLAG_INSTALLED_STORES, $stores);
         return $this;
     }
-    public function getRegisteredStores() {
+
+    /**
+     * Retrive registered stores from DB
+     *
+     * @return array
+     */
+    public function getRegisteredStores()
+    {
         $registered = $this->_flagManager->getFlagData(self::TABBY_FEED_FLAG_INSTALLED_STORES);
         return is_array($registered) ? $registered : [];
     }
 
-    public function getConfiguredStores() {
+    /**
+     * Build configured stores list
+     *
+     * @return array
+     */
+    public function getConfiguredStores()
+    {
         // build stores list need to be installed
         $websites = [];
         foreach ($this->_storeManager->getWebsites(false, true) as $websiteCode => $website) {
             if ($secretKey = $this->getWebsiteSecretKey($websiteCode)) {
                 // bypass test keys
-                if ($this->isTestKey($secretKey)) continue;
+                if ($this->isTestKey($secretKey)) {
+                    continue;
+                }
                 // bypass disabled websites
-                if (!$this->isFeedEnabledForWebsite($websiteCode)) continue;
+                if (!$this->isFeedEnabledForWebsite($websiteCode)) {
+                    continue;
+                }
 
                 $websites[$website->getId()] = $secretKey;
             }
@@ -268,14 +425,18 @@ class Service {
                 // get group code
                 $group = $this->_storeManager->getGroup($store->getGroupId());
                 $groupCode = $group->getCode();
-                $defaultStoreId = $group->getDefaultStoreId(); 
+                $defaultStoreId = $group->getDefaultStoreId();
                 $baseCurrencyCode = $store->getBaseCurrencyCode();
                 if ($use_local) {
                     $currencies = [];
                     foreach ($store->getAvailableCurrencyCodes() as $code) {
                         // bypass unsupported currencies
-                        if (!in_array($code, self::ALLOWED_CURRENCIES)) continue;
-                        if (!in_array($code, $currencies)) $currencies[] = $code;
+                        if (!in_array($code, self::ALLOWED_CURRENCIES)) {
+                            continue;
+                        }
+                        if (!in_array($code, $currencies)) {
+                            $currencies[] = $code;
+                        }
                     }
                     foreach ($currencies as $currency) {
                         $storeCode = $groupCode . '_' . $currency;
@@ -296,7 +457,9 @@ class Service {
                     }
                 } else {
                     // bypass unsupported currencies
-                    if (!in_array($baseCurrencyCode, self::ALLOWED_CURRENCIES)) continue;
+                    if (!in_array($baseCurrencyCode, self::ALLOWED_CURRENCIES)) {
+                        continue;
+                    }
                     if (!array_key_exists($groupCode, $configured)) {
                         $configured[$groupCode] = $this->createStoreConfig(
                             $store->getWebsiteId(),
@@ -316,7 +479,15 @@ class Service {
         }
         return $configured;
     }
-    private function getStoreDomain($store) {
+
+    /**
+     * Retrive store domain from Base url
+     *
+     * @param \Magento\Store\Model\Store $store
+     * @return string
+     */
+    private function getStoreDomain($store)
+    {
         $url = $store->getBaseUrl();
         $storeHost = 'unknown';
         if (preg_match("/https?\:\/\/([^\/]+)\/?/is", $url, $matches)) {
@@ -324,7 +495,21 @@ class Service {
         }
         return $storeHost;
     }
-    private function createStoreConfig($websiteId, $groupId, $storeId, $storeCode, $key, $domain, $currency) {
+
+    /**
+     * Build single store configuration
+     *
+     * @param int $websiteId
+     * @param int $groupId
+     * @param int $storeId
+     * @param string $storeCode
+     * @param string $key
+     * @param string $domain
+     * @param string $currency
+     * @return bool
+     */
+    private function createStoreConfig($websiteId, $groupId, $storeId, $storeCode, $key, $domain, $currency)
+    {
         return [
             'websiteId' => $websiteId,
             'groupId'   => $groupId,
@@ -339,18 +524,40 @@ class Service {
             ]
         ];
     }
-    private function getWebsiteSecretKey($code) {
+
+    /**
+     * Retrive website Secret key
+     *
+     * @param string $code
+     * @return string
+     */
+    private function getWebsiteSecretKey($code)
+    {
         return $this->_scopeConfig->getValue("tabby/tabby_api/secret_key", ScopeInterface::SCOPE_WEBSITE, $code);
     }
-    private function isTestKey($key) {
+
+    /**
+     * Check if Secret key is test
+     *
+     * @param string $key
+     * @return bool
+     */
+    private function isTestKey($key)
+    {
         return (bool)preg_match('#^sk_test#', $key);
     }
-    public function canServiceGroup($storeGroup) {
-        return true;
-    }
-    public function isFeedEnabledForWebsite($code) {
+
+    /**
+     * Check if share feed check box selected for website
+     *
+     * @param string $code
+     * @return bool
+     */
+    public function isFeedEnabledForWebsite($code)
+    {
         return $this->_scopeConfig->getValue("tabby/tabby_feed/share_feed", ScopeInterface::SCOPE_WEBSITE, $code);
     }
+
     /**
      * Check at least one method active for given store id
      *
@@ -371,6 +578,7 @@ class Service {
         }
         return $active;
     }
+
     /**
      * Return config value by website code
      *
@@ -382,5 +590,13 @@ class Service {
     {
         return $this->_scopeConfig->getValue($path, ScopeInterface::SCOPE_WEBSITE, $websiteCode);
     }
-
+    /**
+     * Log exceptions
+     *
+     * @param \Exception $e
+     */
+    public function log(\Exception $e)
+    {
+        return true;
+    }
 }

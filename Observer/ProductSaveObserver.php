@@ -35,6 +35,7 @@ class ProductSaveObserver implements ObserverInterface
             $this->_service->onProductUpdated($observer->getProduct());
         } catch (LocalizedException $e) {
             // ignore exceptions
+            $this->_service->log($e);
         }
     }
 }

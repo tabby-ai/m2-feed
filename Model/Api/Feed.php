@@ -43,17 +43,36 @@ class Feed
         $this->_moduleList = $moduleList;
     }
 
-    public function setConfig($config) {
+    /**
+     * Setter for store configuration
+     *
+     * @param array $config
+     */
+    public function setConfig($config)
+    {
         $this->_config = $config;
 
         return $this;
     }
-    protected function getPluginVersion() {
+    /**
+     * Plugin version retriver
+     *
+     * @return string
+     */
+    protected function getPluginVersion()
+    {
         $moduleInfo = $this->_moduleList->getOne('Tabby_Feed');
         return $moduleInfo["setup_version"];
     }
 
-    public function sendAvailability($records) {
+    /**
+     * API availability request for records provided
+     *
+     * @param array $records
+     * @return bool
+     */
+    public function sendAvailability($records)
+    {
         $result = $this->request(
             'availability',
             HttpMethod::METHOD_POST,
@@ -61,10 +80,17 @@ class Feed
         );
         if (is_object($result) && !property_exists($result, 'errors')) {
             return true;
-        } 
+        }
         return false;
     }
-    public function updateProducts($records) {
+    /**
+     * API products request
+     *
+     * @param array $records
+     * @return bool
+     */
+    public function updateProducts($records)
+    {
         $result = $this->request(
             'products',
             HttpMethod::METHOD_POST,
@@ -72,10 +98,16 @@ class Feed
         );
         if (is_object($result) && !property_exists($result, 'errors')) {
             return true;
-        } 
+        }
         return false;
     }
-    public function register() {
+    /**
+     * API register request
+     *
+     * @return bool|string
+     */
+    public function register()
+    {
         $token = false;
         $result = $this->request(
             'register',
@@ -87,14 +119,26 @@ class Feed
         }
         return $token;
     }
-    private function getRegisterPostData() {
+    /**
+     * Request data for register request
+     *
+     * @return array
+     */
+    private function getRegisterPostData()
+    {
         return [
             'secretKey'     => $this->getSecretKey(),
             'merchantCode'  => $this->getMerchantCode(),
             'domain'        => $this->getStoreDomain()
         ];
     }
-    public function unregister() {
+    /**
+     * API uninstall request
+     *
+     * @return array|bool
+     */
+    public function unregister()
+    {
         $result = $this->request(
             'uninstall',
             HttpMethod::METHOD_POST,
@@ -102,25 +146,48 @@ class Feed
         );
         return $result;
     }
-    private function getUninstallPostData() {
+    /**
+     * Data for uninstall API request
+     *
+     * @return array
+     */
+    private function getUninstallPostData()
+    {
         return [
             'merchantCode'  => $this->getMerchantCode(),
             'domain'        => $this->getStoreDomain()
         ];
     }
-    private function getSecretKey() {
+    /**
+     * Secret Key getter
+     *
+     * @return string
+     */
+    private function getSecretKey()
+    {
         return $this->_config['key'];
     }
-    private function getMerchantCode() {
+    /**
+     * Merchant Code getter
+     *
+     * @return string
+     */
+    private function getMerchantCode()
+    {
         return $this->_config['code'];
     }
-    private function getStoreDomain() {
+    /**
+     * Store Domain getter
+     *
+     * @return string
+     */
+    private function getStoreDomain()
+    {
         return $this->_config['domain'];
     }
     /**
      * Processing http request to Tabby Feed API
      *
-     * @param string $config
      * @param string $endpoint
      * @param string $method
      * @param array|null $data
@@ -164,7 +231,14 @@ class Feed
         return $result;
     }
 
-    protected function getSignature($data) {
+    /**
+     * Request signature provider
+     *
+     * @param array $data
+     * @return string
+     */
+    protected function getSignature($data)
+    {
         if (is_array($data)) {
             $data = json_encode($data);
         }

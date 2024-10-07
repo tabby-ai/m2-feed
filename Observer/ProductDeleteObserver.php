@@ -35,6 +35,7 @@ class ProductDeleteObserver implements ObserverInterface
             $this->_service->onProductDeleted($observer->getProduct());
         } catch (LocalizedException $e) {
             // ignore exceptions
+            $this->_service->log($e);
         }
     }
 }
