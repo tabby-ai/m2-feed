@@ -12,7 +12,7 @@ use Tabby\Checkout\Model\Api\DdLog;
 
 class Feed
 {
-    protected const API_BASE = 'https://plugins-api.tabby.dev/webhooks/%s/tabby/';
+    protected const API_BASE = 'https://plugins-api.tabby.ai/webhooks/%s/tabby/';
     protected const API_VERSION = 'v1';
     protected const API_PATH = '';
 
