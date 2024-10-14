@@ -2,7 +2,7 @@
     "name": "tabby/m2-feed",
     "description": "Tabby feed module",
     "type": "magento2-module",
-    "version": "1.0.2-beta",
+    "version": "1.0.2",
     "require": {
         "php": ">=7.1",
         "magento/framework": "^103.0.0"
