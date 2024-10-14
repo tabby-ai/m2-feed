@@ -1,11 +1,14 @@
 <?xml version="1.0"?>
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
     <system>
         <section id="payment">
             <group id="tabby">
-                <group id="tabby_feed" translate="label" type="text" sortOrder="5" showInDefault="1" showInWebsite="1" showInStore="0">
+                <group id="tabby_feed" translate="label" type="text" sortOrder="5"
+                    showInDefault="1" showInWebsite="1" showInStore="0">
                     <label>Tabby Feed</label>
-                    <field id="share_feed" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" showInStore="0">
+                    <field id="share_feed" translate="label" type="select" sortOrder="10"
+                        showInDefault="1" showInWebsite="1" showInStore="0">
                         <label>Share product feed with Tabby</label>
                         <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                         <config_path>tabby/tabby_feed/share_feed</config_path>

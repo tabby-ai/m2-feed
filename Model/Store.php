@@ -418,7 +418,9 @@ class Store
             $path[] = $category->getResource()->getAttributeRawValue($category->getId(), 'name', $storeId);
             $category = $category->getParentCategory();
         }
-	if (empty($path)) $path[] = 'Uncategorized';
+        if (empty($path)) {
+            $path[] = 'Uncategorized';
+        }
         return ['path' => array_reverse($path)];
     }
     /**
