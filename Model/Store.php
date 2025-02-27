@@ -292,13 +292,27 @@ class Store
         // TODO: price more then zero
         $specialPrice = $product->getSpecialPrice();
         $price = $product->getPrice();
-        $data['price'] = strip_tags($localCurrency->format($baseCurrency->convert($price, $this->_config['currency'])));
+        $data['price'] = $this->formatPrice(
+            $baseCurrency->convert($price, $this->_config['currency']),
+            $this->_config['currency']
+        );
         if ($specialPrice) {
-            $data['salePrice'] = strip_tags($localCurrency->format(
-                $baseCurrency->convert($specialPrice, $this->_config['currency'])
-            ));
+            $data['salePrice'] = $this->formatPrice(
+                $baseCurrency->convert($specialPrice, $this->_config['currency']),
+                $this->_config['currency']
+            );
         }
         return $data;
+    }
+    /**
+     * Format price
+     *
+     * @param float $price
+     * @param string $currencyCode
+     */
+    public function formatPrice($price, $currencyCode)
+    {
+        return $currencyCode . ' ' . number_format($price, 2, '.', '');
     }
     /**
      * Get images URLs for product record
