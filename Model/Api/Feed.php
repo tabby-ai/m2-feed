@@ -4,7 +4,7 @@ namespace Tabby\Feed\Model\Api;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Store\Model\StoreManagerInterface;
-use Tabby\Checkout\Gateway\Config\Config;
+use Tabby\Checkout\Gateway\Config\Config as TabbyConfig;
 use Tabby\Checkout\Model\Api\Http\Method as HttpMethod;
 use Tabby\Checkout\Model\Api\Http\Client as HttpClient;
 use Magento\Framework\Module\ModuleList;
@@ -12,9 +12,14 @@ use Tabby\Checkout\Model\Api\DdLog;
 
 class Feed
 {
-    protected const API_BASE = 'https://plugins-api.tabby.ai/webhooks/%s/tabby/';
+    protected const API_BASE = 'https://plugins-api.%s/webhooks/%s/tabby/';
     protected const API_VERSION = 'v1';
     protected const API_PATH = '';
+
+    /**
+     * @var TabbyConfig
+     */
+    protected $_tabbyConfig;
 
     /**
      * @var Array
@@ -36,9 +41,11 @@ class Feed
      * @param ModuleList $moduleList
      */
     public function __construct(
+        TabbyConfig $tabbyConfig,
         DdLog $ddlog,
         ModuleList $moduleList
     ) {
+        $this->_tabbyConfig = $tabbyConfig;
         $this->_ddlog = $ddlog;
         $this->_moduleList = $moduleList;
     }
@@ -253,7 +260,17 @@ class Feed
      */
     protected function getRequestURI($endpoint)
     {
-        return sprintf(self::API_BASE, static::API_VERSION) . static::API_PATH . $endpoint;
+        return sprintf(self::API_BASE, $this->getTabbyApiDomain(), static::API_VERSION) . static::API_PATH . $endpoint;
+    }
+
+    /**
+     * Getter for tabby API domain
+     *
+     * @return string
+     */
+    protected function getTabbyApiDomain()
+    {
+        return $this->_tabbyConfig->getTabbyDomainByCurrencyCode($this->_config['currency']);
     }
 
     /**
