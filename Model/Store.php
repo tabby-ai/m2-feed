@@ -255,7 +255,6 @@ class Store
     {
         $data = [];
         $data['id'] = (string)$product->getId();
-        // TODO: check for parent IDs
         $parents = $product->getTypeInstance()->getParentIdsByChild($product->getId());
         if ($parent !== null) {
             $data['group_id'] = (string)$parent->getId();
@@ -289,14 +288,13 @@ class Store
         $store = $this->_storeManager->getStore($this->_config['storeId']);
         $baseCurrency = $store->getBaseCurrency();
         $localCurrency = $store->setCurrentCurrencyCode($this->_config['currency'])->getCurrentCurrency();
-        // TODO: price more then zero
         $specialPrice = $product->getSpecialPrice();
         $price = $product->getPrice();
         $data['price'] = $this->formatPrice(
             $baseCurrency->convert($price, $this->_config['currency']),
             $this->_config['currency']
         );
-        if ($specialPrice) {
+        if ($specialPrice && ($specialPrice < $price)) {
             $data['salePrice'] = $this->formatPrice(
                 $baseCurrency->convert($specialPrice, $this->_config['currency']),
                 $this->_config['currency']
@@ -337,7 +335,6 @@ class Store
      */
     public function getProductLanguageData($product, $storeId, $parent = null)
     {
-        // TODO: parent data in title and description
         return [
             'title'         => $this->getTabbyProductTitle($product, $storeId, $parent),
             'description'   => $this->getTabbyProductDescription($product, $storeId, $parent),
