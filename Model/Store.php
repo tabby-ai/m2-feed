@@ -395,19 +395,32 @@ class Store
     public function getTabbyCategories($product, $storeId, $parent)
     {
         $rootCategoryId = $this->_storeManager->getStore($storeId)->getRootCategoryId();
-        $categories = [];
         if ($cIds = $product->getCategoryIds()) {
-            foreach ($cIds as $cId) {
-                $categories[] = $this->getTabbyCategoryPath($rootCategoryId, $cId, $product, $storeId);
-            }
+            $categories = $this->getTabbyCategoriesArray($cIds, $rootCategoryId, $product, $storeId);
         }
         if (empty($categories) && ($parent !== null) && ($cIds = $parent->getCategoryIds())) {
-            foreach ($cIds as $cId) {
-                $categories[] = $this->getTabbyCategoryPath($rootCategoryId, $cId, $parent, $storeId);
-            }
+            $categories = $this->getTabbyCategoriesArray($cIds, $rootCategoryId, $parent, $storeId);
         }
         if (empty($categories)) {
             $categories[] = ['path' => ['Uncategorized']];
+        }
+        return $categories;
+    }
+    /**
+     * Get array with Tabby categories from Magento categories array
+     *
+     * @param array $cIds
+     * @param int $rootCategoryId
+     * @param \Magento\Catalog\Model\Product|null $product
+     * @param int $storeId
+     */
+    protected function getTabbyCategoriesArray($cIds, $rootCategoryId, $product, $storeId) {
+        $categories = [];
+        foreach ($cIds as $cId) {
+            try {
+                $categories[] = $this->getTabbyCategoryPath($rootCategoryId, $cId, $parent, $storeId);
+            } catch (\Exception $e) {
+            }
         }
         return $categories;
     }
