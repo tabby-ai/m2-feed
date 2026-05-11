@@ -4,7 +4,7 @@ namespace Tabby\Feed\Model\Api;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Store\Model\StoreManagerInterface;
-use Tabby\Checkout\Gateway\Config\Config as TabbyConfig;
+use Tabby\Checkout\Gateway\Helper\Domain as DomainHelper;
 use Tabby\Checkout\Model\Api\Http\Method as HttpMethod;
 use Tabby\Checkout\Model\Api\Http\Client as HttpClient;
 use Magento\Framework\Module\ModuleList;
@@ -17,9 +17,9 @@ class Feed
     protected const API_PATH = '';
 
     /**
-     * @var TabbyConfig
+     * @var DomainHelper
      */
-    protected $_tabbyConfig;
+    protected $domainHelper;
 
     /**
      * @var Array
@@ -41,11 +41,11 @@ class Feed
      * @param ModuleList $moduleList
      */
     public function __construct(
-        TabbyConfig $tabbyConfig,
+        DomainHelper $domainHelper,
         DdLog $ddlog,
         ModuleList $moduleList
     ) {
-        $this->_tabbyConfig = $tabbyConfig;
+        $this->domainHelper = $domainHelper;
         $this->_ddlog = $ddlog;
         $this->_moduleList = $moduleList;
     }
@@ -270,7 +270,7 @@ class Feed
      */
     protected function getTabbyApiDomain()
     {
-        return $this->_tabbyConfig->getTabbyDomainByCurrencyCode($this->_config['currency']);
+        return $this->domainHelper->getTabbyDomainByCurrencyCode($this->_config['currency']);
     }
 
     /**
