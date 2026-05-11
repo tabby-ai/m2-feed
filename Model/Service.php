@@ -8,7 +8,7 @@ use Magento\Store\Model\StoreManager;
 use Magento\Framework\Lock\Backend\Database as LockManagerDatabase;
 use Magento\Catalog\Model\ProductFactory;
 use Magento\ConfigurableProduct\Model\Product\Type\Configurable as ConfigurableType;
-use Tabby\Checkout\Gateway\Config\Config;
+use Tabby\Checkout\Gateway\Helper\Data as DataHelper;
 
 class Service
 {
@@ -567,7 +567,7 @@ class Service
     private function isMethodActive($storeId)
     {
         $active = false;
-        foreach (Config::ALLOWED_SERVICES as $method => $title) {
+        foreach (DataHelper::ALLOWED_SERVICES as $method => $title) {
             if ($this->_scopeConfig->getValue(
                 'payment/' . $method . '/active',
                 ScopeInterface::SCOPE_STORE,
